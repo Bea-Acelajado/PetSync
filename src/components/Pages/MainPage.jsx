@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 
 const petThemes = [
   { id: "dog", label: "Dog", icon: "dog" },
@@ -65,8 +66,8 @@ const MainPage = () => {
             community support, and everyday care decisions.
           </p>
           <div className="petsync-hero-actions">
-            <a href="/appointments">Book appointment</a>
-            <a href="/pets">Open dashboard</a>
+            <Link to="/appointments">Book appointment</Link>
+            <Link to="/pets">Open dashboard</Link>
           </div>
         </div>
       </section>

@@ -1657,6 +1657,11 @@ button {
   background: var(--petsync-deep);
 }
 
+.pet-subnav .add-pet-nav {
+  color: #ffffff;
+  background: var(--petsync-deep);
+}
+
 .pet-dashboard-page,
 .pet-subpage {
   width: min(1120px, calc(100% - 40px));

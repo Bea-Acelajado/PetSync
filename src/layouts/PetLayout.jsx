@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { Link, NavLink, Outlet } from "react-router-dom";
 
 const petTabs = [
   { label: "Pet records", path: "/pets/records" },
@@ -18,6 +18,9 @@ const PetLayout = () => {
             {tab.label}
           </NavLink>
         ))}
+        <Link className="add-pet-nav" to="/pets?add=pet">
+          Add pet
+        </Link>
       </nav>
       <Outlet />
     </div>

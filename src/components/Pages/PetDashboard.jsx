@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { loadCollection, saveDocument } from "../../petsyncData";
 
 const initialPets = [
@@ -45,47 +46,51 @@ const history = [
 const PetDashboard = () => {
   const [pets, setPets] = useState(initialPets);
   const [selectedPet, setSelectedPet] = useState(initialPets[0].name);
-  const [newPet, setNewPet] = useState({ name: "", type: "Dog", breed: "" });
+  const [petsLoaded, setPetsLoaded] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
     const loadPets = async () => {
       const data = await loadCollection("pets", initialPets);
       setPets(data);
       setSelectedPet(data[0]?.name || initialPets[0].name);
+      setPetsLoaded(true);
     };
 
     loadPets();
   }, []);
 
+  useEffect(() => {
+    const addPetTemplate = async () => {
+      if (!petsLoaded || searchParams.get("add") !== "pet") {
+        return;
+      }
+
+      const nextNumber = pets.length + 1;
+      const petToAdd = {
+        name: `New Pet ${nextNumber}`,
+        type: "Dog",
+        breed: "New pet profile",
+        age: "New profile",
+        weight: "Add weight",
+        sex: "Add sex",
+        microchip: "Not added",
+        image: "/assets/users/user-icon.svg",
+      };
+
+      setPets((current) => [...current, petToAdd]);
+      setSelectedPet(petToAdd.name);
+      setSearchParams({});
+      await saveDocument("pets", petToAdd);
+    };
+
+    addPetTemplate();
+  }, [pets, petsLoaded, searchParams, setSearchParams]);
+
   const pet = useMemo(
     () => pets.find((item) => item.name === selectedPet) || pets[0],
     [pets, selectedPet]
   );
-
-  const handleAddPet = async (e) => {
-    e.preventDefault();
-
-    if (!newPet.name.trim()) {
-      alert("please enter your pet's name");
-      return;
-    }
-
-    const petToAdd = {
-      name: newPet.name.trim(),
-      type: newPet.type,
-      breed: newPet.breed.trim() || "Mixed breed",
-      age: "New profile",
-      weight: "Add weight",
-      sex: "Add sex",
-      microchip: "Not added",
-      image: "/assets/users/user-icon.svg",
-    };
-
-    setPets((current) => [...current, petToAdd]);
-    setSelectedPet(petToAdd.name);
-    await saveDocument("pets", petToAdd);
-    setNewPet({ name: "", type: "Dog", breed: "" });
-  };
 
   return (
     <main className="pet-dashboard-page">
@@ -158,41 +163,6 @@ const PetDashboard = () => {
             <span>Up to date</span>
           </article>
         </section>
-
-        <form className="add-pet-card" onSubmit={handleAddPet}>
-          <h2>Add Pet</h2>
-          <label>
-            Name
-            <input
-              onChange={(e) => setNewPet((current) => ({ ...current, name: e.target.value }))}
-              placeholder="Pet name"
-              value={newPet.name}
-            />
-          </label>
-          <label>
-            Pet type
-            <select
-              onChange={(e) => setNewPet((current) => ({ ...current, type: e.target.value }))}
-              value={newPet.type}
-            >
-              <option>Dog</option>
-              <option>Cat</option>
-              <option>Bird</option>
-              <option>Fish</option>
-              <option>Rabbit</option>
-              <option>Hamster</option>
-            </select>
-          </label>
-          <label>
-            Breed
-            <input
-              onChange={(e) => setNewPet((current) => ({ ...current, breed: e.target.value }))}
-              placeholder="Breed or species"
-              value={newPet.breed}
-            />
-          </label>
-          <button type="submit">Add pet</button>
-        </form>
       </section>
     </main>
   );

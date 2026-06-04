@@ -26,6 +26,19 @@ const clinics = [
 ];
 
 const visitReasons = ["Check-up", "Vaccination", "Surgery", "Grooming"];
+const pets = ["Luna", "Milo"];
+const serviceCosts = {
+  "Check-up": 65,
+  Vaccination: 113,
+  Surgery: 185,
+  Grooming: 105,
+};
+const takenSlots = {
+  "1": ["09:00 AM"],
+  "2": ["10:30 AM", "04:00 PM"],
+  "3": ["05:30 PM"],
+  "4": ["02:30 PM"],
+};
 const dates = [
   { day: "MON", date: "28", muted: true },
   { day: "TUE", date: "29", muted: true },
@@ -39,9 +52,14 @@ const times = ["09:00 AM", "10:30 AM", "01:00 PM", "02:30 PM", "04:00 PM", "05:3
 
 const BookAppointment = () => {
   const [selectedClinic, setSelectedClinic] = useState(clinics[0]);
+  const [favoriteClinics, setFavoriteClinics] = useState([]);
+  const [selectedPet, setSelectedPet] = useState(pets[0]);
   const [reason, setReason] = useState("Check-up");
+  const [notes, setNotes] = useState("");
+  const [attachment, setAttachment] = useState("");
   const [selectedDate, setSelectedDate] = useState("3");
   const [time, setTime] = useState("01:00 PM");
+  const [confirmation, setConfirmation] = useState(null);
 
   const doctor = useMemo(
     () => ({
@@ -53,28 +71,60 @@ const BookAppointment = () => {
     [selectedClinic]
   );
 
+  const estimatedCost = serviceCosts[reason] || 65;
+  const estimatedWait = selectedClinic.name === "Bay Area Pet Hospital" ? "10-15 min" : "15-25 min";
+
+  const calendarUrl = confirmation
+    ? `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(
+        `PetSync appointment for ${confirmation.pet}`
+      )}&details=${encodeURIComponent(
+        `${confirmation.reason} with ${confirmation.doctor} at ${confirmation.clinic}. Reference: ${confirmation.reference}`
+      )}&location=${encodeURIComponent(confirmation.clinic)}`
+    : "";
+
+  const toggleFavoriteClinic = (clinicName) => {
+    setFavoriteClinics((current) =>
+      current.includes(clinicName)
+        ? current.filter((name) => name !== clinicName)
+        : [...current, clinicName]
+    );
+  };
+
+  const selectDate = (date) => {
+    const nextAvailableTime = times.find((item) => !takenSlots[date]?.includes(item));
+
+    setSelectedDate(date);
+    setTime(nextAvailableTime || "");
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!selectedDate || !reason.trim()) {
+    if (!selectedDate || !reason.trim() || !time) {
       alert("please complete the form first");
       return;
     }
 
+    const reference = `PS-${Date.now().toString().slice(-6)}`;
     const appointment = {
+      pet: selectedPet,
       clinic: selectedClinic.name,
       date: selectedDate,
       time,
       reason,
+      notes,
+      attachment,
       doctor: doctor.name,
-      fee: 65,
+      fee: estimatedCost,
+      estimatedWait,
+      reference,
       status: "Pending",
     };
 
     await saveDocument("appointments", appointment);
     console.log("appointment booked:", appointment);
 
-    alert("appointment booked successfully!");
+    setConfirmation(appointment);
   };
 
   return (
@@ -120,6 +170,25 @@ const BookAppointment = () => {
                   </small>
                 </span>
                 <span className="clinic-rating">star {clinic.rating}</span>
+                <span
+                  className={`clinic-favorite ${favoriteClinics.includes(clinic.name) ? "saved" : ""}`}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    toggleFavoriteClinic(clinic.name);
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      toggleFavoriteClinic(clinic.name);
+                    }
+                  }}
+                  aria-label={`Save ${clinic.name}`}
+                >
+                  heart
+                </span>
                 <span className="clinic-tags">
                   {clinic.tags.map((tag) => (
                     <em key={tag}>{tag}</em>
@@ -132,6 +201,14 @@ const BookAppointment = () => {
 
         <section className="booking-card visit-details">
           <h2>Visit Details</h2>
+          <label>
+            Pet
+            <select value={selectedPet} onChange={(event) => setSelectedPet(event.target.value)}>
+              {pets.map((pet) => (
+                <option key={pet}>{pet}</option>
+              ))}
+            </select>
+          </label>
           <p>Select the primary reason for your visit.</p>
           <div className="visit-reason-grid">
             {visitReasons.map((item) => (
@@ -145,6 +222,24 @@ const BookAppointment = () => {
               </button>
             ))}
           </div>
+          <label>
+            Additional Notes or Symptoms
+            <textarea
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+              placeholder="Describe symptoms, behavior changes, or follow-up context."
+              rows="4"
+            />
+          </label>
+          <label className="record-upload">
+            Upload Images or Previous Records
+            <input
+              type="file"
+              accept="image/*,.pdf"
+              onChange={(event) => setAttachment(event.target.files?.[0]?.name || "")}
+            />
+            <span>{attachment || "Attach a photo, PDF, or record"}</span>
+          </label>
         </section>
 
         <section className="booking-card doctor-card">
@@ -168,6 +263,14 @@ const BookAppointment = () => {
               <dt>Consultation Fee</dt>
               <dd>$65.00</dd>
             </div>
+            <div>
+              <dt>Estimated Wait</dt>
+              <dd>{estimatedWait}</dd>
+            </div>
+            <div>
+              <dt>Total Estimated Cost</dt>
+              <dd>${estimatedCost}.00</dd>
+            </div>
           </dl>
         </section>
 
@@ -182,7 +285,7 @@ const BookAppointment = () => {
                 className={`${selectedDate === item.date ? "active" : ""} ${item.muted ? "muted" : ""}`}
                 disabled={item.muted}
                 key={`${item.day}-${item.date}`}
-                onClick={() => setSelectedDate(item.date)}
+                onClick={() => selectDate(item.date)}
                 type="button"
               >
                 <span>{item.day}</span>
@@ -191,17 +294,22 @@ const BookAppointment = () => {
             ))}
           </div>
           <div className="time-row">
-            {times.map((item) => (
-              <button
-                className={time === item ? "active" : ""}
-                disabled={item === "05:30 PM"}
-                key={item}
-                onClick={() => setTime(item)}
-                type="button"
-              >
-                {item}
-              </button>
-            ))}
+            {times.map((item) => {
+              const isTaken = takenSlots[selectedDate]?.includes(item);
+
+              return (
+                <button
+                  className={time === item ? "active" : ""}
+                  disabled={isTaken}
+                  key={item}
+                  onClick={() => setTime(item)}
+                  type="button"
+                >
+                  {item}
+                  {isTaken && <span>Taken</span>}
+                </button>
+              );
+            })}
           </div>
         </section>
 
@@ -209,13 +317,36 @@ const BookAppointment = () => {
           <div>
             <h2>Appointment Summary</h2>
             <p>
-              {reason} at {selectedClinic.name} with {doctor.name} on day{" "}
-              {selectedDate} at {time}.
+              {reason} for {selectedPet} at {selectedClinic.name} with{" "}
+              {doctor.name} on day {selectedDate} at {time}.
             </p>
+            <strong>Total estimate: ${estimatedCost}.00</strong>
           </div>
           <button type="submit">Confirm appointment</button>
         </section>
       </form>
+
+      {confirmation && (
+        <div className="booking-modal-backdrop" role="presentation">
+          <section className="booking-success-modal" role="dialog" aria-modal="true">
+            <span>Appointment confirmed</span>
+            <h2>Reference {confirmation.reference}</h2>
+            <p>
+              {confirmation.reason} for {confirmation.pet} at{" "}
+              {confirmation.clinic} with {confirmation.doctor} on day{" "}
+              {confirmation.date} at {confirmation.time}.
+            </p>
+            <div className="booking-success-actions">
+              <a href={calendarUrl} target="_blank" rel="noreferrer">
+                Add to Calendar
+              </a>
+              <button type="button" onClick={() => setConfirmation(null)}>
+                Close
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </main>
   );
 };

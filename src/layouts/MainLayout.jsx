@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, Outlet } from "react-router-dom";
+import { useTheme } from "../theme/ThemeContext";
 
 const navItems = [
   { label: "Appointments", path: "/appointments" },
@@ -9,10 +10,11 @@ const navItems = [
 ];
 
 const MainLayout = () => {
+  const { mode } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="petsync-app-shell">
+    <div className="petsync-app-shell" data-mode={mode}>
       <header className="petsync-header">
         <Link className="petsync-brand" to="/">
           PetSync

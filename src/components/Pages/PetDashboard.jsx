@@ -43,6 +43,21 @@ const history = [
   },
 ];
 
+const medications = [
+  { name: "Heartworm Preventive", dosage: "1 chew", frequency: "Monthly", refill: "Jul 1, 2026" },
+  { name: "Omega-3 Supplement", dosage: "500 mg", frequency: "Daily", refill: "Jun 20, 2026" },
+];
+
+const lifeEvents = [
+  { title: "Adopted", date: "Mar 12, 2020" },
+  { title: "First Birthday", date: "May 8, 2021" },
+  { title: "Graduated Puppy School", date: "Sep 18, 2021" },
+];
+
+const documents = ["Annual lab results.pdf", "Dental x-ray report.pdf", "Health certificate.pdf"];
+const milestones = ["Senior wellness screening at age 7", "Heartworm refill due next month", "Golden Retriever hip screening reminder"];
+const badges = ["Vaccination Complete", "Healthy Weight Achieved", "Dental Care Streak"];
+
 const PetDashboard = () => {
   const [pets, setPets] = useState(initialPets);
   const [selectedPet, setSelectedPet] = useState(initialPets[0].name);
@@ -92,6 +107,8 @@ const PetDashboard = () => {
     [pets, selectedPet]
   );
 
+  const shareLink = `https://petsync.local/passport/${pet.name.toLowerCase()}`;
+
   return (
     <main className="pet-dashboard-page">
       <section className="pet-dashboard-top">
@@ -132,6 +149,10 @@ const PetDashboard = () => {
               Microchip <strong>{pet.microchip}</strong>
             </span>
           </div>
+          <div className="pet-quick-actions">
+            <button type="button">Log Weight</button>
+            <a href="/appointments">Book Appointment</a>
+          </div>
         </aside>
 
         <section className="medical-history-card">
@@ -162,6 +183,61 @@ const PetDashboard = () => {
             <strong>DHPP</strong>
             <span>Up to date</span>
           </article>
+        </section>
+
+        <section className="passport-card medication-card">
+          <h2>Active Medications</h2>
+          {medications.map((item) => (
+            <article key={item.name}>
+              <strong>{item.name}</strong>
+              <span>{item.dosage} - {item.frequency}</span>
+              <small>Refill reminder: {item.refill}</small>
+            </article>
+          ))}
+        </section>
+
+        <section className="passport-card life-events-card">
+          <h2>Life Events</h2>
+          {lifeEvents.map((event) => (
+            <article key={event.title}>
+              <strong>{event.title}</strong>
+              <span>{event.date}</span>
+            </article>
+          ))}
+        </section>
+
+        <section className="passport-card badge-card">
+          <h2>Milestone Badges</h2>
+          <div>
+            {badges.map((badge) => (
+              <span key={badge}>{badge}</span>
+            ))}
+          </div>
+        </section>
+
+        <section className="passport-card milestone-card">
+          <h2>Upcoming Milestones</h2>
+          {milestones.map((milestone) => (
+            <span key={milestone}>{milestone}</span>
+          ))}
+        </section>
+
+        <section className="passport-card document-vault-card">
+          <h2>Document Vault</h2>
+          <label>
+            Upload PDF or image
+            <input type="file" accept="application/pdf,image/*" />
+          </label>
+          {documents.map((document) => (
+            <span key={document}>{document}</span>
+          ))}
+        </section>
+
+        <section className="passport-card passport-share-card">
+          <h2>Share Passport</h2>
+          <p>Temporary secure link for clinics, pet sitters, or groomers.</p>
+          <code>{shareLink}</code>
+          <button type="button">Generate Link</button>
         </section>
       </section>
     </main>

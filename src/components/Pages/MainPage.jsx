@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { useTheme } from "../../theme/ThemeContext";
 
 const petThemes = [
   { id: "dog", label: "Dog", icon: "dog" },
@@ -8,6 +9,7 @@ const petThemes = [
   { id: "fish", label: "Fish", icon: "fish" },
   { id: "rabbit", label: "Rabbit", icon: "rabbit" },
   { id: "hamster", label: "Hamster", icon: "hamster" },
+  { id: "none", label: "None", icon: "none" },
 ];
 
 const paletteThemes = [
@@ -36,7 +38,8 @@ const careCards = [
 ];
 
 const MainPage = () => {
-  const [mode, setMode] = useState("light");
+  const { mode, setMode } = useTheme();
+  const pageRef = useRef(null);
   const [petTheme, setPetTheme] = useState("dog");
   const [paletteTheme, setPaletteTheme] = useState("deep");
 
@@ -45,8 +48,52 @@ const MainPage = () => {
     [petTheme]
   );
 
+  useEffect(() => {
+    const page = pageRef.current;
+
+    if (!page) {
+      return undefined;
+    }
+
+    const revealItems = page.querySelectorAll(".reveal-on-scroll");
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.18 }
+    );
+
+    revealItems.forEach((item) => observer.observe(item));
+
+    const updateHeroMotion = () => {
+      const hero = page.querySelector(".petsync-hero");
+
+      if (!hero) {
+        return;
+      }
+
+      const { top, height } = hero.getBoundingClientRect();
+      const progress = Math.min(Math.max((0 - top) / height, 0), 1);
+      hero.style.setProperty("--hero-parallax", `${progress * 28}px`);
+    };
+
+    updateHeroMotion();
+    window.addEventListener("scroll", updateHeroMotion, { passive: true });
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("scroll", updateHeroMotion);
+    };
+  }, []);
+
   return (
     <main
+      ref={pageRef}
       className="petsync-home"
       data-mode={mode}
       data-pet={petTheme}
@@ -58,7 +105,7 @@ const MainPage = () => {
         <div className="water-ring water-ring-one" />
         <div className="water-ring water-ring-two" />
 
-        <div className="petsync-hero-content">
+        <div className="petsync-hero-content reveal-on-scroll">
           <span className="petsync-kicker">Digital veterinary care</span>
           <h1>PetSync</h1>
           <p>
@@ -72,7 +119,7 @@ const MainPage = () => {
         </div>
       </section>
 
-      <section className="petsync-panel petsync-theme-panel">
+      <section className="petsync-panel petsync-theme-panel reveal-on-scroll">
         <div>
           <span className="petsync-kicker">Dashboard themes</span>
           <h2>Make the workspace match your pet</h2>
@@ -114,6 +161,13 @@ const MainPage = () => {
                 </button>
               ))}
             </div>
+            <div className="theme-request-ticket">
+              <label htmlFor="pet-theme-request">Add pet theme ticket</label>
+              <div>
+                <input id="pet-theme-request" type="text" placeholder="Request a pet theme" />
+                <button type="button">Submit</button>
+              </div>
+            </div>
           </div>
 
           <div className="theme-group">
@@ -133,10 +187,14 @@ const MainPage = () => {
           </div>
         </div>
 
-        <div className="theme-preview">
+        <div className="theme-preview dashboard-preview-card">
           <span className={`pet-symbol large ${selectedTheme?.icon || "dog"}`} />
           <div>
-            <h3>{selectedTheme?.label} care dashboard</h3>
+            <h3>
+              {selectedTheme?.id === "none"
+                ? "No pet theme dashboard"
+                : `${selectedTheme?.label} care dashboard`}
+            </h3>
             <p>
               Theme choices update this main page instantly and can later be
               saved to a user profile.
@@ -145,12 +203,12 @@ const MainPage = () => {
         </div>
       </section>
 
-      <section className="petsync-panel">
+      <section className="petsync-panel feature-panel reveal-on-scroll">
         <span className="petsync-kicker">What PetSync is about</span>
         <h2>Everything a pet owner needs in one care flow</h2>
         <div className="care-grid">
           {careCards.map((card) => (
-            <article className="care-card" key={card.title}>
+            <article className="care-card reveal-on-scroll" key={card.title}>
               <img src={card.asset} alt="" />
               <h3>{card.title}</h3>
               <p>{card.text}</p>
@@ -159,7 +217,7 @@ const MainPage = () => {
         </div>
       </section>
 
-      <section className="petsync-about">
+      <section className="petsync-about reveal-on-scroll">
         <img src="/assets/about-us/dog.jpg" alt="Dog receiving gentle care" />
         <div>
           <span className="petsync-kicker">About us</span>
